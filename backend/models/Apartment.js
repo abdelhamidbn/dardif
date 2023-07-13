@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const roomSchema = new mongoose.Schema({
+const apartmentSchema = new mongoose.Schema({
     number: {
         type: Number,
         required: true
@@ -16,7 +16,7 @@ const roomSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['Single', 'Double'],
+        enum: ['Appartement', 'Studio'],
         required: true
     },
     pricePerDay: {
@@ -31,14 +31,14 @@ const roomSchema = new mongoose.Schema({
         public_id: String,
         url: String
     }],
-    hotel: {
+    building: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Hotels",
+        ref: "Buildings",
         required: true
     }
 
 }, { timestamps: true });
 
-const Room = mongoose.model("Rooms", roomSchema);
+const Apartment = mongoose.model("Apartments", apartmentSchema);
 
-module.exports = Room;
+module.exports = Apartment;

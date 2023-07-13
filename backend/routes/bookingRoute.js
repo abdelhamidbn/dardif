@@ -4,7 +4,7 @@ const { isAuthenticatedUser, authorizedRole } = require('../middlewares/auth');
 
 const router = express.Router();
 
-router.route('/hotel/:id/:room/book').post(isAuthenticatedUser, createBooking);
+router.route('/building/:id/:apartment/book').post(isAuthenticatedUser, createBooking);
 router.route('/booking/:id').put(isAuthenticatedUser, authorizedRole('admin'), updateBooking).get(isAuthenticatedUser, authorizedRole('admin'), getBookingDetails);
 router.route('/bookings').get(isAuthenticatedUser, authorizedRole("admin"), getAllBookings);
 router.route('/me/bookings').get(isAuthenticatedUser, getOwnBookings);

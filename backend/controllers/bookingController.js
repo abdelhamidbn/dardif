@@ -1,6 +1,6 @@
 const Booking = require('../models/Booking');
-const Hotel = require('../models/Hotel');
-const Room = require('../models/Room');
+const Building = require('../models/Building');
+const Apartment = require('../models/Apartment');
 const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
 const ErrorHandler = require('../utils/errorHandler');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
@@ -16,19 +16,19 @@ exports.createBooking = catchAsyncErrors(async (req, res, next) => {
         return next(new ErrorHandler("Invalid Payment Info", 400));
     }
     
-    const hotel = await Hotel.findById(req.params.id);
-    if (!hotel) {
-        return next(new ErrorHandler("Hotel not found", 404));
+    const building = await Building.findById(req.params.id);
+    if (!building) {
+        return next(new ErrorHandler("Building not found", 404));
     }
 
-    const room = await Room.findById(req.params.room);
-    if (!room) {
-        return next(new ErrorHandler("Room not found", 404))
+    const apartment = await Apartment.findById(req.params.apartment);
+    if (!apartment) {
+        return next(new ErrorHandler("Apartment not found", 404))
     }
 
-    const isHotelsRoom = hotel.rooms.includes(room.id);
-    if (!isHotelsRoom) {
-        return next(new ErrorHandler("This Room is not available in this hotel", 400))
+    const isBuildingsApartment = building.apartments.includes(apartment.id);
+    if (!isBuildingsApartment) {
+        return next(new ErrorHandler("This Apartment is not available in this building", 400))
     }
 
     if (dates.length < 1) {
@@ -45,26 +45,26 @@ exports.createBooking = catchAsyncErrors(async (req, res, next) => {
         return next(new ErrorHandler("Can't book same date more than once", 400))
     }
 
-    if (room.notAvailable.length > 0) {
-        const notAvailableCopy = room.notAvailable.map((room) => Date.parse(room));
+    if (apartment.notAvailable.length > 0) {
+        const notAvailableCopy = apartment.notAvailable.map((apartment) => Date.parse(apartment));
 
         const isBooked = dates.some((date) => {
             return notAvailableCopy.includes(Date.parse(new Date(date)))
         });
 
-        if (isBooked) return next(new ErrorHandler("Room already booked", 400));
+        if (isBooked) return next(new ErrorHandler("Apartment already booked", 400));
     }
 
     let formattedDates = [];
     dates.forEach((date) => {
-        room.notAvailable.push(date);
+        apartment.notAvailable.push(date);
         formattedDates.push(date);
     })
 
     await Booking.create({
         user: req.user.id,
-        hotel: hotel.id,
-        room: room.id,
+        building: building.id,
+        apartment: apartment.id,
         dates: formattedDates,
         totalPrice,
         phone,
@@ -72,7 +72,7 @@ exports.createBooking = catchAsyncErrors(async (req, res, next) => {
         paidAt: Date.now()
     })
 
-    await room.save();
+    await apartment.save();
 
     res.status(201).json({
         success: true
@@ -94,14 +94,14 @@ exports.updateBooking = catchAsyncErrors(async (req, res, next) => {
     if (status === 'Complete') {
         if (booking.status === "Complete") return next(new ErrorHandler("Can't change booking status", 400));
 
-        const room = await Room.findById(booking.room);
+        const apartment = await Apartment.findById(booking.apartment);
         const bookingDatesCopy = booking.dates.map((date) => Date.parse(date));
 
-        room.notAvailable = room.notAvailable.filter((date) => {
+        apartment.notAvailable = apartment.notAvailable.filter((date) => {
             return !bookingDatesCopy.includes(Date.parse(date));
         });
 
-        await room.save();
+        await apartment.save();
         booking.status = status;
         await booking.save();
     }
@@ -124,7 +124,7 @@ exports.updateBooking = catchAsyncErrors(async (req, res, next) => {
 
 // get own booking details
 exports.getOwnBookingDetails = catchAsyncErrors(async (req, res, next) => {
-    const booking = await Booking.findById(req.params.id).populate('room').populate('hotel');
+    const booking = await Booking.findById(req.params.id).populate('apartment').populate('building');
 
     if (!booking) {
         return next(new ErrorHandler("Booking not found", 404));
@@ -168,7 +168,7 @@ exports.getAllBookings = catchAsyncErrors(async (req, res, next) => {
 
 // get booking details -- admin
 exports.getBookingDetails = catchAsyncErrors(async (req, res, next) => {
-    const booking = await Booking.findById(req.params.id).populate('room').populate('hotel');
+    const booking = await Booking.findById(req.params.id).populate('apartment').populate('building');
     if (!booking) {
         return next(new ErrorHandler("Booking not found", 404));
     }

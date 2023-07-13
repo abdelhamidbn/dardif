@@ -6,14 +6,14 @@ const bookingSchema = new mongoose.Schema({
         ref: "Users",
         required: true
     },
-    hotel: {
+    building: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Hotels",
+        ref: "Buildings",
         required: true
     },
-    room: {
+    apartment: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Rooms",
+        ref: "Apartments",
         required: true
     },
     dates: [{

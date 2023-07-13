@@ -1,16 +1,16 @@
 const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
-const Hotel = require('../models/Hotel');
-const Room = require('../models/Room');
+const Building = require('../models/Building');
+const Apartment = require('../models/Apartment');
 const Booking = require('../models/Booking');
 const ErrorHandler = require('../utils/errorHandler');
 const cloudinary = require('cloudinary').v2;
 const getDataUri = require('../utils/getDataUri');
 
-// create hotel -- admin
-exports.createHotel = catchAsyncErrors(async (req, res, next) => {
+// create building -- admin
+exports.createBuilding = catchAsyncErrors(async (req, res, next) => {
     const { name, location, distance, specification, description } = req.body;
 
-    const hotel = await Hotel.create({
+    const building = await Building.create({
         name, location, distance, specification, description
     });
 
@@ -19,19 +19,19 @@ exports.createHotel = catchAsyncErrors(async (req, res, next) => {
     })
 });
 
-// upload hotel pictures -- admin
-exports.uploadHotelPictures = catchAsyncErrors(async (req, res, next) => {
+// upload building pictures -- admin
+exports.uploadBuildingPictures = catchAsyncErrors(async (req, res, next) => {
     const pictures = req.files;
     const id = req.params.id;
 
     if (pictures.length < 1) {
-        return next(new ErrorHandler('Please upload hotel pictures', 400));
+        return next(new ErrorHandler('Please upload building pictures', 400));
     }
 
-    const hotel = await Hotel.findById(id);
+    const building = await Building.findById(id);
 
-    if (!hotel) {
-        return next(new ErrorHandler('Hotel not found', 404));
+    if (!building) {
+        return next(new ErrorHandler('Building not found', 404));
     }
 
     
@@ -39,7 +39,7 @@ exports.uploadHotelPictures = catchAsyncErrors(async (req, res, next) => {
         const pictureUri = getDataUri(picture);
 
         const myCloud = await cloudinary.uploader.upload(pictureUri.content, {
-            folder: '/DarDif/hotels',
+            folder: '/DarDif/buildings',
             crop: "scale",
         })
 
@@ -50,28 +50,28 @@ exports.uploadHotelPictures = catchAsyncErrors(async (req, res, next) => {
     }))
 
     // destroy previous pictures
-    if (hotel.pictures.length > 0) {
-        await Promise.all(hotel.pictures.map(async (picture) => {
+    if (building.pictures.length > 0) {
+        await Promise.all(building.pictures.map(async (picture) => {
             await cloudinary.uploader.destroy(picture.public_id)
             return;
         }));
     }
 
-    hotel.pictures = picturePath;
-    await hotel.save();
+    building.pictures = picturePath;
+    await building.save();
 
     res.status(200).json({
         success: true,
-        hotel
+        building
     })
 })
 
-// update hotel details -- admin
-exports.updateHotel = catchAsyncErrors(async (req, res, next) => {
+// update building details -- admin
+exports.updateBuilding = catchAsyncErrors(async (req, res, next) => {
     const id = req.params.id;
     const { name, location, distance, specification, description } = req.body;
 
-    const hotel = await Hotel.findByIdAndUpdate(id, {
+    const building = await Building.findByIdAndUpdate(id, {
         $set: {
             name,
             location,
@@ -81,84 +81,84 @@ exports.updateHotel = catchAsyncErrors(async (req, res, next) => {
         }
     }, { new: true })
 
-    if (!hotel) {
-        return next(new ErrorHandler("Hotel not found", 404));
+    if (!building) {
+        return next(new ErrorHandler("Building not found", 404));
     }
 
     res.status(200).json({
         success: true,
-        hotel
+        building
     })
 })
 
-// delete hotel -- admin
-exports.deleteHotel = catchAsyncErrors(async (req, res, next) => {
-    const hotel = await Hotel.findById(req.params.id);
+// delete building -- admin
+exports.deleteBuilding = catchAsyncErrors(async (req, res, next) => {
+    const building = await Building.findById(req.params.id);
 
-    if (!hotel) {
-        return next(new ErrorHandler("Hotel not found", 404));
+    if (!building) {
+        return next(new ErrorHandler("Building not found", 404));
     }
 
-    // delete hotel rooms
-    await Promise.all(hotel.rooms.map(async (roomId) => {
-        const room = await Room.findById(roomId);
+    // delete building apartments
+    await Promise.all(building.apartments.map(async (apartmentId) => {
+        const apartment = await Apartment.findById(apartmentId);
 
-        room && await room.delete();
+        apartment && await apartment.delete();
 
         return;
     }))
 
-    if (hotel.pictures.length > 0) {
-        await Promise.all(hotel.pictures.map(async (picture) => {
+    if (building.pictures.length > 0) {
+        await Promise.all(building.pictures.map(async (picture) => {
             await cloudinary.uploader.destroy(picture.public_id)
         }))
     }
 
 
-    // delete hotel's booking details
+    // delete building's booking details
     const bookings = await Booking.find({
-        hotel: hotel.id
+        building: building.id
     })
 
     if (bookings.length > 0) {
         await Promise.all(bookings.map(async (booking) => await booking.delete()));
     }
 
-    await hotel.delete();
-    const hotels = await Hotel.find();
+    await building.delete();
+    const buildings = await Building.find();
 
     res.status(200).json({
         success: true,
-        hotels,
-        message: "Hotel deleted successfully"
+        buildings,
+        message: "Building deleted successfully"
     })
 })
 
-// get hotel details
-exports.getHotelDetails = catchAsyncErrors(async (req, res, next) => {
-    const hotel = await Hotel.findById(req.params.id).populate('rooms');
+// get building details
+exports.getBuildingDetails = catchAsyncErrors(async (req, res, next) => {
+    const building = await Building.findById(req.params.id).populate('apartments');
 
-    if (!hotel) {
-        return next(new ErrorHandler("Hotel not found", 404));
+    if (!building) {
+        return next(new ErrorHandler("Building not found", 404));
     }
 
     res.status(200).json({
         success: true,
-        hotel
+        building
     })
 })
 
-// get all hotels
-exports.getAllHotels = catchAsyncErrors(async (req, res, next) => {
+// get all buildings
+exports.getAllBuildings = catchAsyncErrors(async (req, res, next) => {
     const keyword = req.query.location;
-    const roomCount = Number(req.query.room);
+    const apartmentCount = Number(req.query.apartment);
     const personCount = Number(req.query.person);
     const dates = [];
 
     
     // for search query
     if (req.query.person && personCount < 1) return next(new ErrorHandler("At least one person required", 400));
-    if (req.query.room && roomCount < 1) return next(new ErrorHandler("At least one room required", 400));
+    if (req.query.apartment && apartmentCount < 1) return next(new ErrorHandler("At least one apartment required", 400));
     if (req.query.d1 && req.query.d2) {
         let startDate = req.query.d1;
         let endDate = req.query.d2;        
@@ -172,27 +172,27 @@ exports.getAllHotels = catchAsyncErrors(async (req, res, next) => {
         }
     }
 
-    let hotels = await Hotel.find({
+    let buildings = await Building.find({
         location: {
             $regex: keyword ? keyword : '',
             $options: 'i'
         },
-        $expr: { $gte: [{ $size: "$rooms" }, req.query.room ? roomCount : 0] }
+        $expr: { $gte: [{ $size: "$apartments" }, req.query.apartment ? apartmentCount : 0] }
 
-    }).populate('rooms');
+    }).populate('apartments');
 
     if (req.query.person) {
-        hotels = hotels.filter((hotel) => {
-            return hotel.rooms.some((room) => {
-                return personCount > 1 ? room.type === "Double" :  true;
+        buildings = buildings.filter((building) => {
+            return building.apartments.some((apartment) => {
+                return personCount > 1 ? apartment.type === "Studio" :  true;
             })
         })
     }
 
     if (dates.length > 0) {
-        hotels = hotels.filter((hotel) => {
-            return hotel.rooms.some((room) => {
-                return room.notAvailable.every((date) => {
+        buildings = buildings.filter((building) => {
+            return building.apartments.some((apartment) => {
+                return apartment.notAvailable.every((date) => {
                     return !dates.includes(Date.parse(date))
                 })
             })
@@ -201,6 +201,6 @@ exports.getAllHotels = catchAsyncErrors(async (req, res, next) => {
 
     res.status(200).json({
         success: true,
-        hotels
+        buildings
     })
 })

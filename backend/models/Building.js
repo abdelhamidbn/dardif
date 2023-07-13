@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const hotelSchema = new mongoose.Schema({
+const buildingSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
@@ -25,14 +25,14 @@ const hotelSchema = new mongoose.Schema({
         public_id: String,
         url: String
     }],
-    rooms: [{
+    apartments: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Rooms"
+        ref: "Apartments"
     }]
 
 }, { timestamps: true });
 
-const Hotel = mongoose.model("Hotels", hotelSchema);
+const Building = mongoose.model("Buildings", buildingSchema);
 
 
-module.exports = Hotel;
+module.exports = Building;
